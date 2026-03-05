@@ -1,169 +1,73 @@
-// pages/index.js
-// TASK 1: API dan ma'lumot olish
-// TASK 2: useEffect orqali so'rov yuborish
-// TASK 2 (getStaticProps): Build vaqtida ma'lumotlarni olish
+// pages/teams/index.js
+import Link from "next/link";
+import { teams as allTeams } from "../../data/mockData";
 
-import { useState, useEffect } from "react";
-
-// ============================================================
-// TASK 2 (getStaticProps): Build vaqtida ishlaydi
-// Bu funksiya serverda chaqiriladi, natija props sifatida keladi
-// ============================================================
+// getStaticProps - endi localhost emas, to'g'ridan mockData dan oladi
 export async function getStaticProps() {
-  // API ga so'rov yuboramiz
-  const res = await fetch("http://localhost:3000/api");
-  const data = await res.json();
-
+  const teamsData = allTeams.map(({ members, ...rest }) => rest);
   return {
-    props: {
-      // Build vaqtida olingan ma'lumotlar
-      staticTeamsStrength: data.teamsStrength,
-      staticProjectDeliveries: data.projectDeliveries,
-    },
-    // Har 60 soniyada qayta fetch qiladi (ISR - Incremental Static Regeneration)
-    revalidate: 60,
+    props: { teams: teamsData },
   };
 }
 
-// ============================================================
-// Asosiy komponent
-// ============================================================
-export default function HomePage({ staticTeamsStrength, staticProjectDeliveries }) {
-  // TASK 2 (useEffect): Client tomonida ma'lumot olish uchun state lar
-  const [dynamicData, setDynamicData] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-
-  // ============================================================
-  // TASK 2: useEffect orqali so'rov yuborish
-  // Komponent mount bo'lganda ishlaydi (browser tomonida)
-  // ============================================================
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        setLoading(true);
-        const response = await fetch("/api"); // /api/index.js ga so'rov
-        if (!response.ok) throw new Error("Ma'lumot olishda xato!");
-        const data = await response.json();
-        setDynamicData(data);
-      } catch (err) {
-        setError(err.message);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchData();
-  }, []); // [] - faqat bir marta ishlaydi
+export default function TeamsPage({ teams }) {
+  const colors = ["#6366f1", "#22c55e", "#f59e0b", "#ef4444"];
 
   return (
     <div style={styles.container}>
-      <h1 style={styles.title}>📊 Dashboard</h1>
+      <div style={styles.header}>
+        <Link href="/" style={styles.backLink}>← Bosh sahifa</Link>
+        <h1 style={styles.title}>👥 Barcha Teamlar</h1>
+        <p style={styles.subtitle}>Jami {teams.length} ta team</p>
+      </div>
 
-      {/* ====================================================
-          getStaticProps dan kelgan ma'lumotlar (build vaqtida)
-          ==================================================== */}
-      <section style={styles.section}>
-        <h2 style={styles.sectionTitle}>
-          🏗️ getStaticProps — Build vaqtida olingan ma'lumotlar
-        </h2>
-
-        <div style={styles.grid}>
-          {/* Teams Strength */}
-          <div style={styles.card}>
-            <h3 style={styles.cardTitle}>💪 Teams Strength</h3>
-            {staticTeamsStrength.map((team) => (
-              <div key={team.id} style={styles.item}>
-                <span style={styles.teamName}>{team.name}</span>
-                <div style={styles.strengthBar}>
-                  <div
-                    style={{
-                      ...styles.strengthFill,
-                      width: `${(team.strength / 10) * 100}%`,
-                    }}
-                  />
+      <div style={styles.grid}>
+        {teams.map((team, index) => (
+          <div key={team.id} style={styles.card}>
+            <div style={{ ...styles.accent, background: colors[index % colors.length] }} />
+            <div style={styles.cardBody}>
+              <h2 style={styles.teamName}>{team.name}</h2>
+              <p style={styles.lead}>👤 Lead: <strong>{team.lead}</strong></p>
+              <p style={styles.tech}>🛠️ {team.tech}</p>
+              <div style={styles.strengthRow}>
+                <span style={styles.strengthLabel}>💪 Kuch:</span>
+                <div style={styles.bar}>
+                  <div style={{ ...styles.barFill, width: `${(team.strength / 10) * 100}%`, background: colors[index % colors.length] }} />
                 </div>
-                <span style={styles.strengthNum}>{team.strength}/10</span>
+                <span style={styles.strengthNum}>{team.strength}</span>
               </div>
-            ))}
-          </div>
-
-          {/* Project Deliveries */}
-          <div style={styles.card}>
-            <h3 style={styles.cardTitle}>🚀 Project Deliveries</h3>
-            {staticProjectDeliveries.map((project) => (
-              <div key={project.id} style={styles.item}>
-                <span style={styles.projectName}>{project.name}</span>
-                <span
-                  style={{
-                    ...styles.badge,
-                    background: project.status === "Delivered" ? "#22c55e" : "#f59e0b",
-                  }}
-                >
-                  {project.status}
-                </span>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* ====================================================
-          useEffect dan kelgan ma'lumotlar (client tomonida)
-          ==================================================== */}
-      <section style={styles.section}>
-        <h2 style={styles.sectionTitle}>
-          ⚡ useEffect — Client tomonida olingan ma'lumotlar
-        </h2>
-
-        {loading && <p style={styles.loading}>⏳ Ma'lumotlar yuklanmoqda...</p>}
-        {error && <p style={styles.error}>❌ Xato: {error}</p>}
-
-        {dynamicData && (
-          <div style={styles.grid}>
-            <div style={styles.card}>
-              <h3 style={styles.cardTitle}>💪 Teams Strength (useEffect)</h3>
-              {dynamicData.teamsStrength.map((team) => (
-                <div key={team.id} style={styles.item}>
-                  <span>{team.name}</span>
-                  <strong style={{ color: "#6366f1" }}>{team.strength} kishi</strong>
-                </div>
-              ))}
-            </div>
-            <div style={styles.card}>
-              <h3 style={styles.cardTitle}>🚀 Projects (useEffect)</h3>
-              {dynamicData.projectDeliveries.map((p) => (
-                <div key={p.id} style={styles.item}>
-                  <span>{p.name}</span>
-                  <span>{p.progress}%</span>
-                </div>
-              ))}
+              <Link href={`/teams/${team.id}`} style={styles.button}>
+                Batafsil ko'rish →
+              </Link>
             </div>
           </div>
-        )}
-      </section>
+        ))}
+      </div>
     </div>
   );
 }
 
-// ============================================================
-// Styles
-// ============================================================
 const styles = {
   container: { maxWidth: "900px", margin: "0 auto", padding: "24px", fontFamily: "sans-serif" },
-  title: { fontSize: "2rem", fontWeight: "bold", marginBottom: "32px", color: "#1e293b" },
-  section: { marginBottom: "40px" },
-  sectionTitle: { fontSize: "1.2rem", color: "#475569", marginBottom: "16px", borderBottom: "2px solid #e2e8f0", paddingBottom: "8px" },
-  grid: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px" },
-  card: { background: "#f8fafc", borderRadius: "12px", padding: "20px", border: "1px solid #e2e8f0" },
-  cardTitle: { fontSize: "1rem", fontWeight: "bold", marginBottom: "16px", color: "#1e293b" },
-  item: { display: "flex", alignItems: "center", justifyContent: "space-between", padding: "8px 0", borderBottom: "1px solid #e2e8f0" },
-  teamName: { fontSize: "0.875rem", color: "#334155" },
-  strengthBar: { flex: 1, height: "8px", background: "#e2e8f0", borderRadius: "4px", margin: "0 12px" },
-  strengthFill: { height: "100%", background: "#6366f1", borderRadius: "4px", transition: "width 0.3s" },
-  strengthNum: { fontSize: "0.75rem", color: "#64748b", minWidth: "35px" },
-  projectName: { fontSize: "0.875rem", color: "#334155" },
-  badge: { fontSize: "0.75rem", color: "white", padding: "2px 10px", borderRadius: "20px" },
-  loading: { color: "#6366f1", fontSize: "1rem" },
-  error: { color: "#ef4444", fontSize: "1rem" },
+  header: { marginBottom: "32px" },
+  backLink: { color: "#6366f1", textDecoration: "none", fontSize: "0.875rem" },
+  title: { fontSize: "2rem", fontWeight: "bold", color: "#1e293b", margin: "8px 0 4px" },
+  subtitle: { color: "#64748b", fontSize: "0.875rem" },
+  grid: { display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: "20px" },
+  card: { background: "white", borderRadius: "12px", border: "1px solid #e2e8f0", overflow: "hidden", boxShadow: "0 1px 3px rgba(0,0,0,0.1)" },
+  accent: { height: "4px" },
+  cardBody: { padding: "20px" },
+  teamName: { fontSize: "1.2rem", fontWeight: "bold", color: "#1e293b", marginBottom: "8px" },
+  lead: { color: "#475569", fontSize: "0.875rem", margin: "4px 0" },
+  tech: { color: "#64748b", fontSize: "0.8rem", margin: "4px 0 16px" },
+  strengthRow: { display: "flex", alignItems: "center", gap: "8px", marginBottom: "16px" },
+  strengthLabel: { fontSize: "0.8rem", color: "#64748b", minWidth: "55px" },
+  bar: { flex: 1, height: "8px", background: "#e2e8f0", borderRadius: "4px" },
+  barFill: { height: "100%", borderRadius: "4px" },
+  strengthNum: { fontSize: "0.8rem", fontWeight: "bold", color: "#334155" },
+  button: { display: "inline-block", background: "#6366f1", color: "white", padding: "8px 16px", borderRadius: "8px", textDecoration: "none", fontSize: "0.875rem", fontWeight: "500" },
 };
+
+
+
+
